@@ -36,6 +36,40 @@ resource "aws_iam_user_policy_attachment" "readonly_attachment" {
     policy_arn = aws_iam_policy.readonly_policy.arn
 }
 
+#Create an S3 bucket with encryption enabled
+resource "aws_s3_bucket" "secure_bucket" {
+    bucket = "secure-terraform-bucket-${random_string.suffix.result}"
+}
 
+#Generate a random suffix for the bucket name
+resource "random_string" "suffix" {
+    length = 6
+    special = false
+    upper = false
+}
 
-#Create a VPC
+#Enable encryption for the bucket
+resource "aws_s3_bucket_server_side_encryption_configuration" "bucket_encryption" {
+    bucket = aws_s3_bucket.secure_bucket.id
+
+    rule {
+        apply_server_side_encryption_by_default {
+            sse_algorithm = "AES256"
+        }
+    }
+}
+
+# Block public access to the bucket
+resource "aws_s3_bucket_public_access_block" "block_public_access" {
+    bucket = aws_s3_bucket.secure_bucket.id
+
+    block_public_acls = true
+    block_public_policy = true
+    ignore_public_acls = true
+    restrict_public_buckets = true
+}
+
+#Output the bucket name
+output "bucket_name" {
+    value = aws_s3_bucket.secure_bucket.bucket
+}
